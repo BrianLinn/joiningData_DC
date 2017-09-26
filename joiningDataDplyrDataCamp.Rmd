@@ -122,3 +122,211 @@ artists %>%
 
 ##Filtering Joins and Set Operators
 
+###Apply a semi-join
+As you saw in the video, semi-joins provide a concise way to filter data from the first dataset based on information in a second dataset.
+
+For example, the code in the editor uses semi_join() to create a data frame of the artists in artists who have written a song in songs.
+```{r semiJoin}
+library(tidyverse)
+# View the output of semi_join()
+artists %>% 
+  semi_join(songs, by = c("first", "last"))
+
+# Create the same result
+artists %>% 
+  right_join(songs, by = c("first", "last")) %>% 
+  filter(!is.na(instrument)) %>% 
+  select(first, last, instrument)
+
+```
+###Exploring with semi-joins
+
+Semi-joins provide a useful way to explore the connections between multiple tables of data.
+
+For example, you can use a semi-join to determine the number of albums in the albums dataset that were made by a band in the bands dataset.
+```{r exploreSemiJoin}
+
+albums %>% 
+        semi_join(bands, by = "band") %>% 
+        nrow()
+
+
+```
+###We've attempted to rewrite this semi-join as a filter. Will it return the same results?
+```{r}
+tracks <- read_csv("./data/tracks.csv")
+matches <- read_csv("./data/matches.csv")
+tracks %>% semi_join(
+  matches,
+  by = c("band", "year", "first")
+)
+
+tracks %>% filter(
+  (band == "The Beatles" & 
+     year == 1964 & first == "Paul") |
+    (band == "The Beatles" & 
+       year == 1965 & first == "John") |
+    (band == "Simon and Garfunkel" & 
+       year == 1966 & first == "Paul")
+)
+```
+###Apply an anti-join
+As Garrett mentioned in the video, anti-joins provide a useful way to reason about how a mutating join will work before you apply the join.
+
+For example, you can use an anti-join to see which rows will not be matched to a second dataset by a join.
+
+Apply another anti-join
+Anti-joins with anti_join() also provide a great way to diagnose joins that go wrong.
+
+For example, they can help you zero-in on rows that have capitalization or spelling errors in the keys. These things will make your primary and secondary keys appear different to R, even though you know they refer to the same thing.
+```{r antiJoin}
+
+artists %>% 
+        anti_join(bands, by = c("first", "last"))
+
+labels <- read_csv("./data/labels.csv")
+
+labels %>% 
+        anti_join(albums, by = "album")
+```
+###Which filtering join?
+Think you have filtering joins down? Let's check.
+
+Which filtering join would you use to determine how many rows in songs match a label in labels?
+```{r whichFilterJoin}
+# Determine which key joins labels and songs
+labels
+songs
+
+# Check your understanding
+songs %>% 
+  # Find the rows of songs that match a row in labels
+  semi_join(labels, by = "album") %>% 
+  # Number of matches between labels and songs
+  nrow()
+```
+###Set Operations
+union - all of both datasets
+intersect - the shared observations from each data set
+setdiff - the observations from one dataset that are not in the other
+
+How many songs are there?
+We have loaded two datasets in your workspace, aerosmith and greatest_hits, each of which represents an album from the band Aerosmith. Each row in either of the datasets is a song on that album.
+
+How many unique songs do these two albums contain in total?
+```{r setOperations}
+aerosmith <- read_csv("./data/aerosmith/aerosmith.csv")
+greatest_hits <- read_csv("./data/aerosmith/greatest_hits.csv")
+
+#all songs from aerosmith and greatest_hits
+aerosmith %>% 
+  # Create the new dataset using a set operation
+  union(greatest_hits, by = "song") %>% 
+  # Count the total number of songs
+  nrow()
+
+#songs from aerosmith on greatest hits
+aerosmith %>% 
+        intersect(greatest_hits, by = "song")
+
+```
+###Live! Bootleg songs
+live contains the songs from a third Aerosmith album, Live! Bootleg.
+
+Which songs are on Live! Bootleg but not on Greatest Hits? Notice that the length of songs may be different when they are performed live.
+```{r moreSetOperations}
+live <- read_csv("./data/aerosmith/live.csv")
+
+# Select the song names from live
+live_songs <- live %>% select(song)
+
+# Select the song names from greatest_hits
+greatest_songs <- greatest_hits %>% select(song)
+
+# Create the new dataset using a set operation
+live_songs %>% 
+  setdiff(greatest_songs)
+
+```
+###Multiple operations
+There is no set operation to find rows that appear in one data frame or another, but not both. However, you can accomplish this by combining set operators, as Garrett showed in the video.
+
+Can you think of a combination that would answer the question, "Which songs appear on one of Live! Bootleg or Greatest Hits, but not both?"
+```{r multipleSetOperations}
+# Select songs from live and greatest_hits
+# Select the song names from live
+live_songs <- live %>% select(song)
+greatest_songs <- greatest_hits %>% select(song)
+
+# Return the songs that only exist in one dataset
+live_only <- live_songs %>% 
+        setdiff(greatest_songs)
+great_only <- greatest_songs %>% 
+        setdiff(live_songs)
+liveOnly_great_only <- live_only %>% 
+        union(great_only)
+
+# Select songs from live and greatest_hits
+live_songs <- live %>% select(song)
+greatest_songs <- greatest_hits %>% select(song)
+
+# Return the songs that only exist in one dataset
+all_songs <- live_songs %>% union(greatest_songs)
+common_songs <- live_songs %>% intersect(greatest_songs)
+courseSolution  <-  all_songs %>% setdiff(common_songs)
+setequal(liveOnly_great_only, courseSolution)
+```
+###Apply setequal
+definitive and complete contain the songs that appear in competing Led Zeppelin anthologies: The Definitive Collection and The Complete Studio Recordings, respectively.
+
+Both anthologies claim to contain the complete studio recordings of Led Zeppelin, but do the anthologies contain the same exact songs?
+
+Apply setequal again
+A few exercises ago, you saw that an intersect() is analagous to a semi_join() when two datasets contain the same variables and each variable is used in the key.
+
+Under these conditions, setdiff() is also analagous to one of the filtering joins.
+```{r setEqual}
+definitive <- read_csv("./data/definitive.csv")
+complete <- read_csv("./data/complete.csv")
+
+# Check if same order: definitive and complete
+identical(definitive, complete)
+
+# Check if any order: definitive and complete
+setequal(definitive, complete)
+
+# Songs in definitive but not complete
+definitive %>% 
+        setdiff(complete)
+
+
+# Songs in complete but not definitive
+complete %>%
+        setdiff(definitive)
+
+
+# Return songs in definitive that are not in complete
+definitive %>% 
+  anti_join(complete, by = c("song", "album"))
+
+# Return songs in complete that are not in definitive
+complete %>% 
+  anti_join(definitive, by = c("song", "album"))
+
+```
+###Comparing albums
+It appears that The Definitive Collection contains songs from the soundtrack of The Song Remains the Same, a movie filmed during a live Led Zeppelin concert. Is this the only difference between The Definitive Collection and The Complete Studio Recordings?
+```{r compareDatasets}
+soundtrack <- read_csv("./data/soundtrack.csv")
+
+# Check if same order: definitive and union of complete and soundtrack
+identical(definitive, union(complete, soundtrack, by = c("song", "album")))
+
+
+
+# Check if any order: definitive and union of complete and soundtrack
+setequal(definitive, union(complete, soundtrack, by = c("song", "album")))
+
+
+```
+
