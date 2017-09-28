@@ -329,4 +329,75 @@ setequal(definitive, union(complete, soundtrack, by = c("song", "album")))
 
 
 ```
+##Assembling Data
+Binds
+bind_row
+bind_cols
+###Which bind?
+side_one and side_two contain tracks from sides one and two, respectively, of Pink Floyd's famous album The Dark Side of the Moon.
+
+Bind these datasets into a single table using a dplyr function. Which type of bind should you use?
+```{r binds}
+library(tidyverse)
+side_one <- as_tibble(read_csv("./data/side_one.csv"))
+side_two <- as_tibble(read_csv("./data/side_two.csv"))
+
+# Examine side_one and side_two
+side_one
+side_two
+
+# Bind side_one and side_two into a single dataset
+side_one %>% 
+  bind_rows(side_two)
+
+```
+###Bind rows
+discography and jimi contain all of the information you need to create an anthology dataset for the band The Jimi Hendrix Experience.
+
+discography contains a data frame of each album by The Jimi Hendrix Experience and the year of the album.
+
+jimi contains a list of data frames of album tracks, one for each album released by The Jimi Hendrix Experience. As Garrett explained in the video, you can pass bind_rows() a list of data frames like jimi to bind together into a single data frame.
+```{r bindRows}
+discography <- as_tibble(read_csv("./data/jimi_hendrix/discography.csv"))
+jimi1 <- as_tibble(read_csv("./data/jimi_hendrix/jimi1.csv"))
+jimi2 <- as_tibble(read_csv("./data/jimi_hendrix/jimi2.csv"))
+jimi3 <- as_tibble(read_csv("./data/jimi_hendrix/jimi3.csv"))
+bind_rows(jimi1, jimi2, jimi3)
+# Examine discography and jimi
+discography
+jimi
+
+  bind_rows('Are You Experienced' = jimi1,
+            'Axis: Bold As Love' = jimi2,
+            'Electric Ladyland' = jimi3,
+            .id = "album") %>% 
+  # Make a complete data frame
+  left_join(discography, by = "album")
+
+```
+###Bind Columns
+Let's make a compilation of Hank Williams' 67 singles. To do this, you can use hank_years and hank_charts:
+
+hank_years contains the name and release year of each of Hank Williams' 67 singles.
+hank_charts contains the name of each of Hank Williams' 67 singles as well as the highest position it earned on the Billboard sales charts.
+Each dataset contains the same songs, but hank_years is arranged chronologically by year, while hank_charts is arranged alphabetically by song title.
+```{r bindColumns}
+hank_years <- as_tibble(read_csv("./data/hank_williams/hank_years.csv"))
+hank_charts <- as_tibble(read_csv("./data/hank_williams/hank_charts.csv"))
+# Examine hank_years and hank_charts
+hank_years
+hank_charts
+
+hank_years %>% 
+  # Reorder hank_years alphabetically by song title
+  arrange(song) %>% 
+  # Select just the year column
+  select(year) %>% 
+  # Bind the year column
+  bind_cols(hank_charts) %>% 
+  # Arrange the finished dataset
+  arrange(year, song)
+
+?arrange
+```
 
